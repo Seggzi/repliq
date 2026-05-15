@@ -9,13 +9,9 @@ export async function middleware(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
+        getAll() { return request.cookies.getAll() },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          )
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
           supabaseResponse = NextResponse.next({ request })
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options)
@@ -27,30 +23,36 @@ export async function middleware(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Protect all /dashboard and /settings routes
-  const isProtected =
-    request.nextUrl.pathname.startsWith('/dashboard') ||
-    request.nextUrl.pathname.startsWith('/settings') ||
-    request.nextUrl.pathname.startsWith('/customers')
+  const isProtected = ['/dashboard', '/settings', '/customers', '/analytics'].some(p =>
+    request.nextUrl.pathname.startsWith(p)
+  )
 
+  const isAuthPage = ['/auth/login', '/auth/signup'].some(p =>
+    request.nextUrl.pathname.startsWith(p)
+  )
+
+  // Not logged in trying to access protected page → login
   if (isProtected && !user) {
-    return NextResponse.redirect(new URL('/auth/login', request.url))
+    const response = NextResponse.redirect(new URL('/auth/login', request.url))
+    // Clear cache so back button doesn't restore dashboard
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate')
+    return response
   }
 
-  // Redirect logged-in users away from login/signup
-  const isAuthPage =
-    request.nextUrl.pathname.startsWith('/auth/login') ||
-    request.nextUrl.pathname.startsWith('/auth/signup')
-
+  // Logged in trying to access login/signup → dashboard
   if (isAuthPage && user) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
+  }
+
+  // Add no-cache headers to all protected pages
+  if (isProtected) {
+    supabaseResponse.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate')
+    supabaseResponse.headers.set('Pragma', 'no-cache')
   }
 
   return supabaseResponse
 }
 
 export const config = {
-  matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
-  ],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
 }

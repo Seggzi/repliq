@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Sidebar from '@/components/layout/Sidebar'
 
-export default async function SettingsLayout({
+export default async function CustomersLayout({
   children,
 }: {
   children: React.ReactNode
@@ -15,7 +15,7 @@ export default async function SettingsLayout({
   return (
     <div style={{ display: 'flex', height: '100vh', background: '#080C0C', overflow: 'hidden' }}>
       <Sidebar />
-      <main style={{ flex: 1, overflowY: 'auto' }}>
+      <main style={{ flex: 1, overflowY: 'auto', paddingTop: 0 }} className="dashboard-main">
         {children}
       </main>
     </div>

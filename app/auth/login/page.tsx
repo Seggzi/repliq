@@ -6,6 +6,14 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { MessageSquare, ArrowRight, Mail, Lock, Eye, EyeOff } from 'lucide-react'
 
+// Prevent back-button cache
+if (typeof window !== 'undefined') {
+  window.history.pushState(null, '', window.location.href)
+  window.onpopstate = () => {
+    window.history.pushState(null, '', window.location.href)
+  }
+}
+
 export default function LoginPage() {
   const router = useRouter()
   const supabase = createClient()
