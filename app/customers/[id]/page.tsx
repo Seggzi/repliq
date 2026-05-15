@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, MessageSquare, Mail, Phone, Instagram } from 'lucide-react'
+import { ArrowLeft, MessageSquare, Mail, Phone } from 'lucide-react'
 
 export default async function CustomerDetailPage({
   params,
@@ -113,20 +113,17 @@ export default async function CustomerDetailPage({
               {/* Messages */}
               <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {[...messages].reverse().map((msg: any) => {
-                  const isOut = msg.direction === 'outbound'
-                  const chType = msg.channels?.type ?? 'unknown'
+                  const isOut   = msg.direction === 'outbound'
+                  const chType  = msg.channels?.type ?? 'unknown'
                   const chColor = channelColors[chType] ?? C.mint
 
                   return (
                     <div key={msg.id} style={{
-                      display: 'flex',
-                      flexDirection: 'column',
+                      display: 'flex', flexDirection: 'column',
                       alignItems: isOut ? 'flex-end' : 'flex-start',
                     }}>
                       <div className="msg-bubble" style={{
-                        background: isOut
-                          ? 'rgba(83,230,212,0.12)'
-                          : 'rgba(13,46,46,0.7)',
+                        background: isOut ? 'rgba(83,230,212,0.12)' : 'rgba(13,46,46,0.7)',
                         border: `1px solid ${isOut ? 'rgba(83,230,212,0.2)' : 'rgba(244,247,247,0.06)'}`,
                         color: isOut ? C.mint : C.gray,
                         borderBottomRightRadius: isOut ? 4 : 14,
@@ -212,7 +209,12 @@ export default async function CustomerDetailPage({
                     background: 'rgba(225,48,108,0.1)', border: '1px solid rgba(225,48,108,0.2)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>
-                    <Instagram size={13} color="#E1306C" />
+                    {/* Instagram icon — not in lucide-react, using inline SVG */}
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#E1306C" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="2" y="2" width="20" height="20" rx="5"/>
+                      <circle cx="12" cy="12" r="4"/>
+                      <circle cx="17.5" cy="6.5" r="0.5" fill="#E1306C"/>
+                    </svg>
                   </div>
                   <div>
                     <p className="cd-sans" style={{ fontSize: 10, color: 'rgba(244,247,247,0.3)', marginBottom: 2 }}>Instagram</p>
