@@ -1,22 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { MessageSquare, ArrowRight, Mail, Lock, Eye, EyeOff } from 'lucide-react'
 
-// Prevent back-button cache
-if (typeof window !== 'undefined') {
-  window.history.pushState(null, '', window.location.href)
-  window.onpopstate = () => {
-    window.history.pushState(null, '', window.location.href)
-  }
-}
-
 export default function LoginPage() {
   const router = useRouter()
-  const supabase = createClient()
+  const [supabase, setSupabase] = useState<any>(null)
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -24,12 +16,22 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Initialize Supabase client after mount (prevents build-time error)
+  useEffect(() => {
+    setSupabase(createClient())
+  }, [])
+
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
+    if (!supabase) return
+
     setLoading(true)
     setError(null)
 
-    const { error: loginError } = await supabase.auth.signInWithPassword({ email, password })
+    const { error: loginError } = await supabase.auth.signInWithPassword({ 
+      email, 
+      password 
+    })
 
     if (loginError) {
       setError(loginError.message)
@@ -143,20 +145,16 @@ export default function LoginPage() {
           height: 1px;
           background: linear-gradient(90deg, transparent, rgba(83,230,212,0.15), transparent);
         }
-
-        .stat-item {
-          text-align: center;
-        }
       `}</style>
 
-      {/* bg orbs */}
+      {/* Background Orbs */}
       <div className="orb" style={{ width:600, height:600, top:-200, left:'50%', transform:'translateX(-50%)', background:'rgba(13,46,46,0.8)' }} />
       <div className="orb" style={{ width:320, height:320, top:30,   left:'50%', transform:'translateX(-50%)', background:'rgba(83,230,212,0.06)', animation:'breathe 7s ease-in-out infinite' }} />
       <div className="orb" style={{ width:180, height:180, bottom:100, left:'8%', background:'rgba(83,230,212,0.04)', animation:'breathe 10s ease-in-out infinite' }} />
 
       <div style={{ width:'100%', maxWidth:420, position:'relative', zIndex:1 }}>
 
-        {/* Logo */}
+        {/* Logo & Header */}
         <div className="rise" style={{ textAlign:'center', marginBottom:36 }}>
           <Link href="/" style={{ textDecoration:'none', display:'inline-flex', alignItems:'center', gap:10, justifyContent:'center' }}>
             <div style={{ width:40, height:40, background:'rgba(83,230,212,0.1)', border:'1px solid rgba(83,230,212,0.25)', borderRadius:13, display:'flex', alignItems:'center', justifyContent:'center' }}>
@@ -174,7 +172,7 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Card */}
+        {/* Login Card */}
         <div className="rise d1" style={{
           position:'relative',
           background:'rgba(13,46,46,0.45)',
@@ -183,11 +181,11 @@ export default function LoginPage() {
           padding:'32px 28px',
           boxShadow:'0 40px 80px rgba(0,0,0,0.4), inset 0 1px 0 rgba(83,230,212,0.08)',
         }}>
-          <div style={{ position:'absolute', top:0, left:0, right:0, height:1, borderRadius:'24px 24px 0 0', background:'linear-gradient(90deg, transparent, rgba(83,230,212,0.35), transparent)', pointerEvents:'none' }} />
+          <div style={{ position:'absolute', top:0, left:0, right:0, height:1, borderRadius:'24px 24px 0 0', background:'linear-gradient(90deg, transparent, rgba(83,230,212,0.35), transparent)' }} />
 
           <form onSubmit={handleLogin} style={{ display:'flex', flexDirection:'column', gap:16 }}>
 
-            {/* Email */}
+            {/* Email Field */}
             <div>
               <label className="sans" style={{ display:'block', fontSize:12, fontWeight:500, color:'rgba(244,247,247,0.55)', letterSpacing:'0.06em', textTransform:'uppercase', marginBottom:8 }}>
                 Email
@@ -205,7 +203,7 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Password */}
+            {/* Password Field */}
             <div>
               <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}>
                 <label className="sans" style={{ display:'block', fontSize:12, fontWeight:500, color:'rgba(244,247,247,0.55)', letterSpacing:'0.06em', textTransform:'uppercase' }}>
@@ -235,7 +233,7 @@ export default function LoginPage() {
             {error && <div className="error-box">{error}</div>}
 
             <div style={{ marginTop:4 }}>
-              <button type="submit" disabled={loading} className="btn-mint">
+              <button type="submit" disabled={loading || !supabase} className="btn-mint">
                 {loading ? 'Signing in…' : <>Sign in <ArrowRight size={15} /></>}
               </button>
             </div>
@@ -244,7 +242,7 @@ export default function LoginPage() {
 
           <div className="divider-line" style={{ margin:'24px 0' }} />
 
-          {/* Social proof stats */}
+          {/* Stats */}
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8 }}>
             {[
               { num:'2,400+', label:'Businesses' },
