@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, MessageSquare, Mail, Phone } from 'lucide-react'
+import type { Customer } from '@/types'
 
 export default async function CustomerDetailPage({
   params,
@@ -10,20 +11,24 @@ export default async function CustomerDetailPage({
 }) {
   const supabase = await createClient()
 
-  const { data: customer } = await supabase
-    .from('customers')
-    .select('*')
-    .eq('id', params.id)
-    .single()
+ const { data: rawCustomer } = await supabase
+  .from('customers')
+  .select('*')
+  .eq('id', params.id)
+  .single()
 
-  if (!customer) notFound()
+if (!rawCustomer) notFound()
 
-  const { data: messages } = await supabase
-    .from('messages')
-    .select('*, channels(type)')
-    .eq('customer_id', customer.id)
+const customer = rawCustomer as any
+
+const { data: rawMessages } = await supabase
+  .from('messages')
+  .select('*, channels(type)')
+  .eq('customer_id', (customer as any).id)
     .order('received_at', { ascending: false })
     .limit(50)
+
+  const messages = (rawMessages ?? []) as any[]
 
   const C = {
     mint:      '#53E6D4',
@@ -49,24 +54,16 @@ export default async function CustomerDetailPage({
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Outfit:wght@300;400;500;600&display=swap');
         .cd-serif { font-family: 'Cormorant Garamond', Georgia, serif; }
         .cd-sans  { font-family: 'Outfit', system-ui, sans-serif; }
-
         @keyframes rise { from{opacity:0;transform:translateY(12px);} to{opacity:1;transform:translateY(0);} }
         .rise { animation: rise 0.5s cubic-bezier(0.16,1,0.3,1) both; }
-
         .msg-bubble {
-          max-width: 72%;
-          padding: 11px 14px;
-          border-radius: 14px;
-          font-family: 'Outfit', sans-serif;
-          font-size: 13px; line-height: 1.55;
+          max-width: 72%; padding: 11px 14px; border-radius: 14px;
+          font-family: 'Outfit', sans-serif; font-size: 13px; line-height: 1.55;
         }
         .back-btn {
           display: inline-flex; align-items: center; gap: 6px;
-          color: rgba(244,247,247,0.4);
-          font-family: 'Outfit', sans-serif; font-size: 13px;
-          text-decoration: none;
-          transition: color 0.2s;
-          margin-bottom: 24px;
+          color: rgba(244,247,247,0.4); font-family: 'Outfit', sans-serif;
+          font-size: 13px; text-decoration: none; transition: color 0.2s; margin-bottom: 24px;
         }
         .back-btn:hover { color: rgba(83,230,212,0.8); }
       `}</style>
@@ -86,7 +83,7 @@ export default async function CustomerDetailPage({
             Full message history across all channels
           </p>
 
-          {!messages || messages.length === 0 ? (
+          {messages.length === 0 ? (
             <div style={{
               background: 'rgba(13,46,46,0.3)', border: '1px solid rgba(83,230,212,0.08)',
               borderRadius: 16, padding: '40px', textAlign: 'center',
@@ -99,7 +96,6 @@ export default async function CustomerDetailPage({
               background: 'rgba(13,46,46,0.35)', border: '1px solid rgba(83,230,212,0.1)',
               borderRadius: 20, overflow: 'hidden',
             }}>
-              {/* Toolbar */}
               <div style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                 padding: '14px 18px', background: 'rgba(10,36,36,0.6)',
@@ -110,13 +106,11 @@ export default async function CustomerDetailPage({
                 </span>
               </div>
 
-              {/* Messages */}
               <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {[...messages].reverse().map((msg: any) => {
                   const isOut   = msg.direction === 'outbound'
                   const chType  = msg.channels?.type ?? 'unknown'
                   const chColor = channelColors[chType] ?? C.mint
-
                   return (
                     <div key={msg.id} style={{
                       display: 'flex', flexDirection: 'column',
@@ -153,7 +147,6 @@ export default async function CustomerDetailPage({
 
         {/* Profile sidebar */}
         <div>
-          {/* Avatar card */}
           <div style={{
             background: 'rgba(13,46,46,0.5)', border: '1px solid rgba(83,230,212,0.15)',
             borderRadius: 20, padding: '24px', marginBottom: 12, textAlign: 'center',
@@ -176,7 +169,6 @@ export default async function CustomerDetailPage({
             </p>
           </div>
 
-          {/* Contact details */}
           <div style={{
             background: 'rgba(13,46,46,0.4)', border: '1px solid rgba(83,230,212,0.1)',
             borderRadius: 16, padding: '18px',
@@ -184,15 +176,10 @@ export default async function CustomerDetailPage({
             <p className="cd-sans" style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(244,247,247,0.25)', marginBottom: 14 }}>
               Contact details
             </p>
-
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {customer.whatsapp_number && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{
-                    width: 30, height: 30, borderRadius: 8, flexShrink: 0,
-                    background: 'rgba(37,211,102,0.1)', border: '1px solid rgba(37,211,102,0.2)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}>
+                  <div style={{ width: 30, height: 30, borderRadius: 8, flexShrink: 0, background: 'rgba(37,211,102,0.1)', border: '1px solid rgba(37,211,102,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Phone size={13} color="#25D366" />
                   </div>
                   <div>
@@ -201,15 +188,9 @@ export default async function CustomerDetailPage({
                   </div>
                 </div>
               )}
-
               {customer.instagram_handle && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{
-                    width: 30, height: 30, borderRadius: 8, flexShrink: 0,
-                    background: 'rgba(225,48,108,0.1)', border: '1px solid rgba(225,48,108,0.2)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}>
-                    {/* Instagram icon — not in lucide-react, using inline SVG */}
+                  <div style={{ width: 30, height: 30, borderRadius: 8, flexShrink: 0, background: 'rgba(225,48,108,0.1)', border: '1px solid rgba(225,48,108,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#E1306C" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                       <rect x="2" y="2" width="20" height="20" rx="5"/>
                       <circle cx="12" cy="12" r="4"/>
@@ -222,14 +203,9 @@ export default async function CustomerDetailPage({
                   </div>
                 </div>
               )}
-
               {customer.email && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{
-                    width: 30, height: 30, borderRadius: 8, flexShrink: 0,
-                    background: 'rgba(96,165,250,0.1)', border: '1px solid rgba(96,165,250,0.2)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}>
+                  <div style={{ width: 30, height: 30, borderRadius: 8, flexShrink: 0, background: 'rgba(96,165,250,0.1)', border: '1px solid rgba(96,165,250,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Mail size={13} color="#60a5fa" />
                   </div>
                   <div>
@@ -238,14 +214,12 @@ export default async function CustomerDetailPage({
                   </div>
                 </div>
               )}
-
               {!customer.whatsapp_number && !customer.instagram_handle && !customer.email && (
                 <p className="cd-sans" style={{ fontSize: 12, color: 'rgba(244,247,247,0.25)' }}>No contact details yet</p>
               )}
             </div>
           </div>
         </div>
-
       </div>
     </div>
   )

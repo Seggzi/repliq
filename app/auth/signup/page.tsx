@@ -16,7 +16,8 @@ if (typeof window !== 'undefined') {
 
 export default function SignupPage() {
   const router = useRouter()
-  const supabase = createClient()
+ const supabaseClient = createClient()
+const supabase = supabaseClient as any
 
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')

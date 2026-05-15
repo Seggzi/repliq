@@ -11,13 +11,13 @@ export default async function DashboardPage() {
 
   const firstName = user?.user_metadata?.full_name?.split(' ')[0] ?? 'there'
 
-  // Fetch real stats
+  // Fetch channels
   const { data: channels } = await supabase
     .from('channels')
     .select('id')
     .eq('profile_id', user!.id)
 
-  const channelIds = channels?.map(c => c.id) ?? []
+  const channelIds = (channels ?? []).map((c: any) => c.id)
 
   let totalMessages = 0
   let urgentMessages = 0
@@ -48,6 +48,7 @@ export default async function DashboardPage() {
 
     const todayStart = new Date()
     todayStart.setHours(0, 0, 0, 0)
+
     const { count: resolved } = await supabase
       .from('messages')
       .select('*', { count: 'exact', head: true })

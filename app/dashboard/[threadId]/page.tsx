@@ -9,42 +9,50 @@ export default async function ThreadPage({
   params: { threadId: string }
 }) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
 
-  // Fetch the message
-  const { data: message } = await supabase
+  // Fetch single message
+  const { data: rawMessage } = await supabase
     .from('messages')
     .select('*, customers(*), channels(type)')
     .eq('id', params.threadId)
     .single()
 
-  if (!message) notFound()
+  if (!rawMessage) notFound()
 
-  // Mark as read
-  await supabase
+  const message = rawMessage as any
+
+  // Mark message as read
+  await (supabase as any)
     .from('messages')
     .update({ is_read: true })
     .eq('id', params.threadId)
 
-  // Fetch full conversation with this customer
-  const { data: thread } = await supabase
+  // Fetch full thread
+  const { data: rawThread } = await supabase
     .from('messages')
     .select('*, channels(type)')
     .eq('customer_id', message.customer_id)
     .order('received_at', { ascending: true })
 
-  const customer = message.customers
-  const chType   = message.channels?.type ?? 'unknown'
+  const thread = (rawThread ?? []) as any[]
+
+  const customer = message.customers as any
+  const chType = message.channels?.type ?? 'unknown'
 
   const channelColors: Record<string, string> = {
-    whatsapp:  '#25D366',
+    whatsapp: '#25D366',
     instagram: '#E1306C',
-    email:     '#60a5fa',
+    email: '#60a5fa',
   }
+
   const chColor = channelColors[chType] ?? '#53E6D4'
 
   const initials = (customer?.name ?? 'UN')
-    .split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
+    .split(' ')
+    .map((n: string) => n[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase()
 
   return (
     <div style={{ padding: '32px 36px', fontFamily: "'Outfit', system-ui, sans-serif", minHeight: '100vh' }}>
@@ -55,8 +63,7 @@ export default async function ThreadPage({
         .back-btn {
           display: inline-flex; align-items: center; gap: 6px;
           color: rgba(244,247,247,0.4); font-family: 'Outfit', sans-serif;
-          font-size: 13px; text-decoration: none; transition: color 0.2s;
-          margin-bottom: 24px;
+          font-size: 13px; text-decoration: none; transition: color 0.2s; margin-bottom: 24px;
         }
         .back-btn:hover { color: rgba(83,230,212,0.8); }
         .msg-bubble {
@@ -68,8 +75,7 @@ export default async function ThreadPage({
           background: rgba(52,211,153,0.1); border: 1px solid rgba(52,211,153,0.25);
           color: #34d399; padding: 9px 18px; border-radius: 10px;
           font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 500;
-          cursor: pointer; transition: background 0.2s;
-          text-decoration: none;
+          cursor: pointer; transition: background 0.2s; text-decoration: none;
         }
         .resolve-btn:hover { background: rgba(52,211,153,0.18); }
         @media (max-width: 768px) {
@@ -101,7 +107,6 @@ export default async function ThreadPage({
             </Link>
           </div>
 
-          {/* Messages */}
           <div style={{
             background: 'rgba(13,46,46,0.35)', border: '1px solid rgba(83,230,212,0.1)',
             borderRadius: 20, overflow: 'hidden',
@@ -112,13 +117,13 @@ export default async function ThreadPage({
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             }}>
               <span className="t-sans" style={{ fontSize: 12, color: 'rgba(244,247,247,0.4)' }}>
-                {thread?.length ?? 0} message{(thread?.length ?? 0) !== 1 ? 's' : ''}
+                {thread.length} message{thread.length !== 1 ? 's' : ''}
               </span>
             </div>
 
             <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-              {(thread ?? [message]).map((msg: any) => {
-                const isOut    = msg.direction === 'outbound'
+              {(thread.length > 0 ? thread : [message]).map((msg: any) => {
+                const isOut = msg.direction === 'outbound'
                 const msgColor = channelColors[msg.channels?.type ?? chType] ?? chColor
 
                 return (
@@ -131,7 +136,7 @@ export default async function ThreadPage({
                       border: `1px solid ${isOut ? 'rgba(83,230,212,0.2)' : 'rgba(244,247,247,0.06)'}`,
                       color: isOut ? '#53E6D4' : '#F4F7F7',
                       borderBottomRightRadius: isOut ? 4 : 16,
-                      borderBottomLeftRadius:  isOut ? 16 : 4,
+                      borderBottomLeftRadius: isOut ? 16 : 4,
                     }}>
                       {msg.content}
                     </div>
@@ -140,11 +145,12 @@ export default async function ThreadPage({
                         fontSize: 10, padding: '1px 7px', borderRadius: 999,
                         background: `${msgColor}12`, color: msgColor,
                         fontFamily: "'Outfit', sans-serif", fontWeight: 500,
-                      }}>{msg.channels?.type ?? chType}</span>
+                      }}>
+                        {msg.channels?.type ?? chType}
+                      </span>
                       <span className="t-sans" style={{ fontSize: 11, color: 'rgba(244,247,247,0.22)' }}>
                         {new Date(msg.received_at).toLocaleString('en-NG', {
-                          day: 'numeric', month: 'short',
-                          hour: '2-digit', minute: '2-digit',
+                          day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
                         })}
                       </span>
                     </div>
@@ -155,7 +161,7 @@ export default async function ThreadPage({
           </div>
         </div>
 
-        {/* Customer card */}
+        {/* Customer Sidebar */}
         <div>
           <div style={{
             background: 'rgba(13,46,46,0.5)', border: '1px solid rgba(83,230,212,0.15)',
@@ -163,6 +169,7 @@ export default async function ThreadPage({
             position: 'relative', overflow: 'hidden', marginBottom: 12,
           }}>
             <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, background: 'linear-gradient(90deg, transparent, rgba(83,230,212,0.4), transparent)' }} />
+
             <div style={{
               width: 56, height: 56, borderRadius: '50%', margin: '0 auto 14px',
               background: 'rgba(83,230,212,0.08)', border: '1px solid rgba(83,230,212,0.22)',
@@ -171,18 +178,13 @@ export default async function ThreadPage({
             }}>
               {initials}
             </div>
+
             <p className="t-sans" style={{ fontSize: 15, fontWeight: 500, color: '#F4F7F7', marginBottom: 4 }}>
               {customer?.name ?? 'Unknown'}
             </p>
-            {customer?.email && (
-              <p className="t-sans" style={{ fontSize: 12, color: 'rgba(244,247,247,0.35)' }}>{customer.email}</p>
-            )}
-            {customer?.whatsapp_number && (
-              <p className="t-sans" style={{ fontSize: 12, color: 'rgba(244,247,247,0.35)' }}>{customer.whatsapp_number}</p>
-            )}
-            {customer?.instagram_handle && (
-              <p className="t-sans" style={{ fontSize: 12, color: 'rgba(244,247,247,0.35)' }}>@{customer.instagram_handle}</p>
-            )}
+            {customer?.email && <p className="t-sans" style={{ fontSize: 12, color: 'rgba(244,247,247,0.35)' }}>{customer.email}</p>}
+            {customer?.whatsapp_number && <p className="t-sans" style={{ fontSize: 12, color: 'rgba(244,247,247,0.35)' }}>{customer.whatsapp_number}</p>}
+            {customer?.instagram_handle && <p className="t-sans" style={{ fontSize: 12, color: 'rgba(244,247,247,0.35)' }}>@{customer.instagram_handle}</p>}
           </div>
 
           <div style={{
@@ -194,10 +196,10 @@ export default async function ThreadPage({
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {[
-                { label: 'Channel',  value: chType },
-                { label: 'Intent',   value: message.intent ?? 'unknown' },
-                { label: 'Urgency',  value: message.urgency_score >= 20 ? 'High' : message.urgency_score >= 10 ? 'Medium' : 'Low' },
-                { label: 'Status',   value: message.is_resolved ? 'Resolved' : 'Open' },
+                { label: 'Channel', value: chType },
+                { label: 'Intent', value: message.intent ?? 'unknown' },
+                { label: 'Urgency', value: message.urgency_score >= 20 ? 'High' : message.urgency_score >= 10 ? 'Medium' : 'Low' },
+                { label: 'Status', value: message.is_resolved ? 'Resolved' : 'Open' },
               ].map(({ label, value }) => (
                 <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span className="t-sans" style={{ fontSize: 12, color: 'rgba(244,247,247,0.3)' }}>{label}</span>
@@ -207,7 +209,6 @@ export default async function ThreadPage({
             </div>
           </div>
         </div>
-
       </div>
     </div>
   )

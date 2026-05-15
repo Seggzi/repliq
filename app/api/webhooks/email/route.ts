@@ -1,7 +1,7 @@
-import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { calculateUrgency } from '@/lib/urgency'
 import { classifyIntent } from '@/lib/intent'
+import { createClient } from '@/lib/supabase/server'
 
 type ChannelRow = {
   id: string
@@ -34,7 +34,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true })
     }
 
-    const supabase = await createClient()
+    const sb = await createClient()
+    const supabase = sb as any
 
     // Try to find channel by receiving address
     const { data: channelByAddress } = await supabase
@@ -88,21 +89,26 @@ export async function POST(request: Request) {
       customerId = (newCustomer as { id: string } | null)?.id
     }
 
-    const fullContent  = subject !== '(no subject)' ? `[${subject}] ${textContent}` : textContent
+    const fullContent  = subject !== '(no subject)'
+      ? `[${subject}] ${textContent}`
+      : textContent
+
     const urgencyScore = calculateUrgency(fullContent, new Date().toISOString())
     const intent       = classifyIntent(fullContent)
 
-    await supabase.from('messages').insert({
-      channel_id:    channel.id,
-      customer_id:   customerId ?? null,
-      content:       fullContent,
-      direction:     'inbound',
-      intent,
-      urgency_score: urgencyScore,
-      is_read:       false,
-      is_resolved:   false,
-      received_at:   new Date().toISOString(),
-    })
+    await supabase
+      .from('messages')
+      .insert({
+        channel_id:    channel.id,
+        customer_id:   customerId ?? null,
+        content:       fullContent,
+        direction:     'inbound',
+        intent,
+        urgency_score: urgencyScore,
+        is_read:       false,
+        is_resolved:   false,
+        received_at:   new Date().toISOString(),
+      })
 
     // Check auto-replies
     const { data: autoRepliesData } = await supabase
@@ -128,17 +134,19 @@ export async function POST(request: Request) {
           subject
         )
 
-        await supabase.from('messages').insert({
-          channel_id:    channel.id,
-          customer_id:   customerId ?? null,
-          content:       match.response_text,
-          direction:     'outbound',
-          intent:        'faq',
-          urgency_score: 0,
-          is_read:       true,
-          is_resolved:   false,
-          received_at:   new Date().toISOString(),
-        })
+        await supabase
+          .from('messages')
+          .insert({
+            channel_id:    channel.id,
+            customer_id:   customerId ?? null,
+            content:       match.response_text,
+            direction:     'outbound',
+            intent:        'faq',
+            urgency_score: 0,
+            is_read:       true,
+            is_resolved:   false,
+            received_at:   new Date().toISOString(),
+          })
       }
     }
 

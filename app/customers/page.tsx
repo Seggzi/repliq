@@ -1,25 +1,20 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
-import { Users, MessageSquare, ArrowRight } from 'lucide-react'
+import { Users, ArrowRight } from 'lucide-react'
+import type { Customer } from '@/types'
 
 export default async function CustomersPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  const { data: customers } = await supabase
+  const { data: customersData } = await supabase
     .from('customers')
     .select('*')
     .eq('profile_id', user!.id)
     .order('created_at', { ascending: false })
 
-  const C = {
-    mint:      '#53E6D4',
-    mintFaint: 'rgba(83,230,212,0.08)',
-    border:    'rgba(83,230,212,0.12)',
-    borderMid: 'rgba(83,230,212,0.22)',
-    gray:      '#F4F7F7',
-    textDim:   'rgba(244,247,247,0.45)',
-  }
+  // Cast explicitly — Supabase may infer 'never' without a generated types file
+  const customers = (customersData ?? []) as Customer[]
 
   return (
     <div style={{ padding: '32px 36px', fontFamily: "'Outfit', system-ui, sans-serif", minHeight: '100vh' }}>
@@ -45,10 +40,6 @@ export default async function CustomersPage() {
           background: rgba(13,46,46,0.65);
           transform: translateY(-2px);
         }
-
-        .ch-dot {
-          width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
-        }
         .section-label {
           font-family: 'Outfit', sans-serif;
           font-size: 10px; font-weight: 600; letter-spacing: 0.14em;
@@ -59,10 +50,10 @@ export default async function CustomersPage() {
 
       {/* Header */}
       <div className="rise" style={{ marginBottom: 32 }}>
-        <h1 className="cu-serif" style={{ fontSize: 42, fontWeight: 500, color: C.gray, letterSpacing: '-0.015em', lineHeight: 1.05, marginBottom: 6 }}>
-          Your <em style={{ color: C.mint }}>customers</em>
+        <h1 className="cu-serif" style={{ fontSize: 42, fontWeight: 500, color: '#F4F7F7', letterSpacing: '-0.015em', lineHeight: 1.05, marginBottom: 6 }}>
+          Your <em style={{ color: '#53E6D4' }}>customers</em>
         </h1>
-        <p className="cu-sans" style={{ fontSize: 14, color: C.textDim }}>
+        <p className="cu-sans" style={{ fontSize: 14, color: 'rgba(244,247,247,0.45)' }}>
           Everyone who has ever messaged you, across all channels.
         </p>
       </div>
@@ -70,29 +61,29 @@ export default async function CustomersPage() {
       {/* Stats */}
       <div className="rise d1" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, maxWidth: 500, marginBottom: 28 }}>
         {[
-          { label: 'Total customers', value: customers?.length ?? 0 },
-          { label: 'WhatsApp',        value: customers?.filter(c => c.whatsapp_number).length ?? 0 },
-          { label: 'Instagram',       value: customers?.filter(c => c.instagram_handle).length ?? 0 },
+          { label: 'Total customers', value: customers.length },
+          { label: 'WhatsApp',        value: customers.filter(c => c.whatsapp_number).length },
+          { label: 'Instagram',       value: customers.filter(c => c.instagram_handle).length },
         ].map(({ label, value }) => (
           <div key={label} style={{
             background: 'rgba(13,46,46,0.4)', border: '1px solid rgba(83,230,212,0.1)',
             borderRadius: 14, padding: '16px 18px',
           }}>
-            <p className="cu-serif" style={{ fontSize: 36, fontWeight: 500, color: C.gray, lineHeight: 1, marginBottom: 6 }}>{value}</p>
-            <p className="cu-sans" style={{ fontSize: 11, color: C.textDim }}>{label}</p>
+            <p className="cu-serif" style={{ fontSize: 36, fontWeight: 500, color: '#F4F7F7', lineHeight: 1, marginBottom: 6 }}>{value}</p>
+            <p className="cu-sans" style={{ fontSize: 11, color: 'rgba(244,247,247,0.45)' }}>{label}</p>
           </div>
         ))}
       </div>
 
       {/* Customer list */}
-      {!customers || customers.length === 0 ? (
+      {customers.length === 0 ? (
         <div className="rise d2" style={{
           background: 'rgba(13,46,46,0.3)', border: '1px solid rgba(83,230,212,0.08)',
           borderRadius: 20, padding: '60px 40px', textAlign: 'center', maxWidth: 680,
         }}>
           <div style={{
             width: 52, height: 52, borderRadius: '50%', margin: '0 auto 18px',
-            background: C.mintFaint, border: `1px solid ${C.border}`,
+            background: 'rgba(83,230,212,0.08)', border: '1px solid rgba(83,230,212,0.12)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
             <Users size={20} color="rgba(83,230,212,0.5)" />
@@ -106,7 +97,7 @@ export default async function CustomersPage() {
           <Link href="/settings/channels" style={{
             display: 'inline-flex', alignItems: 'center', gap: 8,
             background: 'rgba(83,230,212,0.1)', border: '1px solid rgba(83,230,212,0.22)',
-            color: C.mint, padding: '10px 20px', borderRadius: 10,
+            color: '#53E6D4', padding: '10px 20px', borderRadius: 10,
             fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 500,
             textDecoration: 'none',
           }}>
@@ -122,7 +113,7 @@ export default async function CustomersPage() {
                 customer.whatsapp_number  && { type: 'WhatsApp',  color: '#25D366' },
                 customer.instagram_handle && { type: 'Instagram', color: '#E1306C' },
                 customer.email            && { type: 'Email',     color: '#60a5fa' },
-              ].filter(Boolean)
+              ].filter(Boolean) as { type: string; color: string }[]
 
               const initials = (customer.name ?? '??')
                 .split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
@@ -137,16 +128,16 @@ export default async function CustomersPage() {
                   {/* Avatar */}
                   <div style={{
                     width: 40, height: 40, borderRadius: '50%', flexShrink: 0,
-                    background: C.mintFaint, border: `1px solid ${C.borderMid}`,
+                    background: 'rgba(83,230,212,0.08)', border: '1px solid rgba(83,230,212,0.22)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 600, color: C.mint,
+                    fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 600, color: '#53E6D4',
                   }}>
                     {initials}
                   </div>
 
                   {/* Info */}
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <p className="cu-sans" style={{ fontSize: 14, fontWeight: 500, color: C.gray, marginBottom: 3 }}>
+                    <p className="cu-sans" style={{ fontSize: 14, fontWeight: 500, color: '#F4F7F7', marginBottom: 3 }}>
                       {customer.name ?? 'Unknown'}
                     </p>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -163,9 +154,9 @@ export default async function CustomersPage() {
                     </div>
                   </div>
 
-                  {/* Channel dots */}
+                  {/* Channel tags */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    {channels.map((ch: any) => (
+                    {channels.map(ch => (
                       <span key={ch.type} style={{
                         fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 999,
                         background: `${ch.color}15`, color: ch.color,

@@ -33,7 +33,8 @@ export async function POST(request: Request) {
     const entry = body?.entry?.[0]
     if (!entry) return NextResponse.json({ ok: true })
 
-    const supabase    = await createClient()
+    const sb = await createClient()
+const supabase = sb as any
     const igAccountId = entry.id
 
     const { data: channelData } = await supabase

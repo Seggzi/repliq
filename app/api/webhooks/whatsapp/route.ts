@@ -33,7 +33,8 @@ export async function POST(request: Request) {
     const entry        = body?.entry?.[0]
     if (!entry) return NextResponse.json({ ok: true })
 
-    const supabase    = await createClient()
+   const sb = await createClient()
+const supabase = sb as any
     const waAccountId = entry?.changes?.[0]?.value?.metadata?.phone_number_id
 
     const { data: channelData } = await supabase
