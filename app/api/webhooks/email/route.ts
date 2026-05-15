@@ -38,7 +38,15 @@ export async function POST(request: Request) {
         .eq('type', 'email')
         .eq('status', 'active')
         .single()
-
+const channel = channelData as {
+  id: string
+  profile_id: string
+  type: string
+  status: string
+  access_token: string | null
+  account_name: string | null
+  account_id: string | null
+} | null
       if (!anyChannel) {
         console.log('No email channel found for:', toEmail)
         return NextResponse.json({ ok: true })
